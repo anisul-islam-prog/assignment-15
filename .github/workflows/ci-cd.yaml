@@ -179,7 +179,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Wait for app service
         run: |
           for i in {1..30}; do
@@ -192,6 +192,17 @@ jobs:
           done
           echo "❌ App failed to start"
           exit 1
+
+      - name: Debug container status
+        run: |
+          echo "=== Docker containers ==="
+          docker ps -a
+          echo "=== Container logs ==="
+          docker logs $(docker ps -aq --filter "ancestor=ghcr.io/${{ github.repository }}/ostad-app") 2>/dev/null || true
+          echo "=== Port check inside container ==="
+          docker exec $(docker ps -aq --filter "ancestor=ghcr.io/${{ github.repository }}/ostad-app") sh -c "netstat -tlnp 2>/dev/null || ss -tlnp" 2>/dev/null || true
+          echo "=== Test curl from runner ==="
+          curl -v http://localhost:3000/health || true
 
       - name: Run k6 load test
         uses: grafana/k6-action@v0.3.1
