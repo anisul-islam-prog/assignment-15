@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY app/ ./app/
 
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DATABASE_URL=sqlite:///data/app.db
@@ -28,6 +31,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')" || exit 1
 
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+
 CMD ["./entrypoint.sh"]
