@@ -204,11 +204,16 @@ jobs:
           echo "=== Test curl from runner ==="
           curl -v http://localhost:3000/health || true
 
+      - name: Install k6
+        run: |
+          wget -q https://github.com/grafana/k6/releases/download/v0.52.0/k6-v0.52.0-linux-amd64.tar.gz
+          tar -xzf k6-v0.52.0-linux-amd64.tar.gz
+          sudo mv k6-v0.52.0-linux-amd64/k6 /usr/local/bin/
+          k6 version
+
       - name: Run k6 load test
-        uses: grafana/k6-action@v0.3.1
-        with:
-          filename: load-tests/load-test.js
-          flags: --env BASE_URL=http://localhost:3000
+        run: |
+          k6 run --env BASE_URL=http://localhost:3000 load-tests/load-test.js
 
   # ─────────────────────────────────────────
   # STAGE 7: Deploy to AWS EC2
