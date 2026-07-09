@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
@@ -11,6 +11,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DATABASE_URL=sqlite:///data/app.db
 
-EXPOSE 5000
+EXPOSE 3000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app.main:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:3000", "app.main:app"]
