@@ -244,3 +244,12 @@ override.tf.json
 
 # Ignore transient lock info files
 .terraform.tfstate.lock.info
+
+__pycache__/
+*.pyc
+.env
+*.db
+.terraform/
+*.tfstate*
+coverage.xml
+.trivy/

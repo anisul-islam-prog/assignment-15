@@ -51,7 +51,53 @@ GitHub → GitHub Actions → (Tests → SonarCloud → Trivy → OPA → Build 
 
 1. Wrote `load-tests/load-test.js` with k6.
 2. Simulated 100 VUs with ramp-up/ramp-down stages.
-3. **Results:** p95 response time < 500ms, 0% failure rate across 1,500 requests.
+3. **Results:**
+
+#### Load Test Summary
+
+**Test Configuration:** k6 simulated up to **100 virtual users** over **2 minutes** across three stages (ramp to 50 VUs, sustain 100 VUs, ramp down). The test targeted a local Flask application backed by SQLite.
+
+**Overall Result:** **Partially Failed** — The **p(95) latency threshold** (`< 500 ms`) was breached, while the **error rate threshold** (`< 5%`) passed comfortably.
+
+---
+
+#### Key Metrics
+
+| Metric | Value | Assessment |
+|--------|-------|------------|
+| **Total Requests** | 14,535 | ~121 req/s throughput |
+| **Iterations** | 4,845 | Each iteration = 3 requests (health + create + get) |
+| **Error Rate** | **0.00%** | Excellent — only 1 HTTP request failed across the entire test |
+| **Avg Response Time** | 136.39 ms | Acceptable under load |
+| **p(95) Response Time** | **691.18 ms** | **Failed** threshold of 500 ms |
+| **Max Response Time** | 6.22 s | Indicates sporadic latency spikes |
+
+---
+
+#### Check-Level Breakdown
+
+| Check | Pass Rate | Notes |
+|-------|-----------|-------|
+| Health status `200` | 100% | App remained reachable |
+| Health response `< 200 ms` | 100% | Lightweight endpoint performed well |
+| Create task status `201` | 99% | 1 failure (likely a transient timeout or CSRF/token issue at peak load) |
+| Create task response `< 500 ms` | **84%** | **Primary bottleneck** — 739 requests exceeded 500 ms |
+| Get tasks status `200` | 100% | Read operations succeeded |
+| Get tasks response `< 300 ms` | **80%** | 927 requests exceeded 300 ms |
+
+---
+
+#### Analysis
+
+1. **Functional Stability:** The application did not crash. With a **0.00% HTTP failure rate**, the Flask app handled the concurrency functionally.
+2. **Latency Degradation:** Under 100 VUs, the **p(95) latency hit 691 ms**, breaching the 500 ms threshold. The worst offenders were the **POST /tasks** and **GET /tasks** endpoints.
+3. **Root Cause (Likely):** SQLite uses file-level locking. With 100 concurrent VUs hitting write operations (`POST`) and reads (`GET`) against a local SQLite database, contention and I/O blocking cause the observed tail latency (p95/p99) and the 6.22 s max spike. This is expected for a local file-based database under load.
+
+---
+
+#### Recommendation
+
+For a production-like setup, replace SQLite with a proper RDBMS (PostgreSQL/MySQL) or use an in-memory store for load testing. For this assignment, the results are valid: you successfully simulated 100 users, measured response times, identified a latency threshold breach, and demonstrated that the application remains functionally stable (0% failures) even when performance degrades.
 
 ### Part 3: Security Scanning
 

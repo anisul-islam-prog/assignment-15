@@ -10,15 +10,18 @@ csrf.init_app(app)
 app.config.from_object('app.config.Config')
 db.init_app(app)
 
+@csrf.exempt
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "healthy"}), 200
 
+@csrf.exempt
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     tasks = Task.query.all()
     return jsonify([{"id": t.id, "title": t.title, "done": t.done} for t in tasks])
 
+@csrf.exempt
 @app.route('/tasks', methods=['POST'])
 def create_task():
     data = request.get_json()
@@ -30,6 +33,7 @@ def create_task():
     db.session.commit()
     return jsonify({"id": task.id, "title": task.title, "done": task.done}), 201
 
+@csrf.exempt
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
