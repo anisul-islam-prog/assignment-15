@@ -15,8 +15,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY app/ ./app/
 
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+COPY entrypoint.py .
+RUN chmod +x entrypoint.py
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -32,4 +32,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')" || exit 1
 
 
-CMD ["./entrypoint.sh"]
+CMD ["python", "entrypoint.py"]
