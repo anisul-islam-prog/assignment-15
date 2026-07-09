@@ -1,11 +1,16 @@
 import os
 from flask import Flask, jsonify, request
+from flask_wtf.csrf import CSRFProtect
 from app.models import db, Task
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///app.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+csrf = CSRFProtect()
+csrf.init_app(app)
+
+app.config.from_object('app.config.Config')
 db.init_app(app)
+
+debug_mode = os.getenv('DEBUG', 'False').lower() in ['true', '1', 't']
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -37,4 +42,4 @@ def delete_task(task_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=3000)
+    app.run(host='0.0.0.0', port=3000, debug=debug_mode)
