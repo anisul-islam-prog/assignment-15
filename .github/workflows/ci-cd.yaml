@@ -179,6 +179,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
+      - name: Wait for app service
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/health; then
+              echo "✅ App is ready"
+              exit 0
+            fi
+            echo "⏳ Waiting for app... attempt $i"
+            sleep 2
+          done
+          echo "❌ App failed to start"
+          exit 1
 
       - name: Run k6 load test
         uses: grafana/k6-action@v0.3.1
