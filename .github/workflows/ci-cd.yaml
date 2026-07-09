@@ -18,7 +18,7 @@ jobs:
     name: Unit Tests & Coverage
     runs-on: ubuntu-latest
     env:
-        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -162,25 +162,36 @@ jobs:
     name: Load Testing with k6
     runs-on: ubuntu-latest
     needs: build-and-push
-    services:
-      app:
-        image: ghcr.io/${{ github.repository }}/ostad-app:${{ github.sha }}
-        ports:
-          - 3000:3000
-        env:
-          DATABASE_URL: sqlite:///data/app.db
-          SECRET_KEY: test-secret-key-for-load-test-only
-        options: >-
-          --health-cmd "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:3000/health')\""
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Wait for app service
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and run app container
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker run -d \
+            --name ostad-app \
+            -p 3000:3000 \
+            -e DATABASE_URL=sqlite:////app/data/app.db \
+            -e SECRET_KEY=test-secret-key-for-load-test-only \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          sleep 3
+
+      - name: Debug container status
+        run: |
+          echo "=== Container status ==="
+          docker ps -a
+          echo "=== Container logs ==="
+          docker logs ostad-app 2>&1 || true
+
+      - name: Wait for app to be ready
         run: |
           for i in {1..30}; do
             if curl -sf http://localhost:3000/health; then
@@ -191,35 +202,14 @@ jobs:
             sleep 2
           done
           echo "❌ App failed to start"
+          docker logs ostad-app 2>&1 || true
           exit 1
-
-      - name: Debug container status
-        run: |
-          echo "=== Docker containers ==="
-          docker ps -a
-          echo "=== Container logs ==="
-          docker logs $(docker ps -aq --filter "ancestor=ghcr.io/${{ github.repository }}/ostad-app") 2>/dev/null || true
-          echo "=== Port check inside container ==="
-          docker exec $(docker ps -aq --filter "ancestor=ghcr.io/${{ github.repository }}/ostad-app") sh -c "netstat -tlnp 2>/dev/null || ss -tlnp" 2>/dev/null || true
-          echo "=== Test curl from runner ==="
-          curl -v http://localhost:3000/health || true
-
-      - name: Debug API endpoints
-        run: |
-          echo "=== GET /tasks ==="
-          curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/tasks || true
-          curl -v http://localhost:3000/tasks 2>&1 | head -20 || true
-          echo ""
-          echo "=== POST /tasks ==="
-          curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"title":"test"}' http://localhost:3000/tasks || true
-          curl -v -X POST -H "Content-Type: application/json" -d '{"title":"test"}' http://localhost:3000/tasks 2>&1 | head -20 || true
 
       - name: Install k6
         run: |
           wget -q https://github.com/grafana/k6/releases/download/v0.52.0/k6-v0.52.0-linux-amd64.tar.gz
           tar -xzf k6-v0.52.0-linux-amd64.tar.gz
           sudo mv k6-v0.52.0-linux-amd64/k6 /usr/local/bin/
-          k6 version
 
       - name: Run k6 load test
         run: |
@@ -256,7 +246,7 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             export IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             export SECRET_KEY="${{ secrets.SECRET_KEY }}"
-            export DATABASE_URL="sqlite:///data/app.db"
+            export DATABASE_URL="sqlite:////app/data/app.db"
             cd ~/ostad-app
             docker-compose down || true
             docker-compose pull
