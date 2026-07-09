@@ -10,8 +10,6 @@ csrf.init_app(app)
 app.config.from_object('app.config.Config')
 db.init_app(app)
 
-debug_mode = os.getenv('DEBUG', 'False').lower() in ['true', '1', 't']
-
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "healthy"}), 200
@@ -42,4 +40,4 @@ def delete_task(task_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=3000, debug=debug_mode)
+    app.run(host='0.0.0.0', port=3000, debug=False)
