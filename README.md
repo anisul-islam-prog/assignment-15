@@ -158,6 +158,7 @@ For a production-like setup, replace SQLite with a proper RDBMS (PostgreSQL/MySQ
 │   ├── variables.tf
 │   └── outputs.tf
 ├── Dockerfile
+├── entrypoint.sh
 ├── docker-compose.yml
 ├── sonar-project.properties
 └── README.md
