@@ -248,9 +248,9 @@ jobs:
             export SECRET_KEY="${{ secrets.SECRET_KEY }}"
             export DATABASE_URL="sqlite:////app/data/app.db"
             cd ~/ostad-app
-            docker-compose down || true
-            docker-compose pull
-            docker-compose up -d
-            docker-compose ps
+            docker compose down || true
+            docker compose pull
+            docker compose up -d
+            docker compose ps
             sleep 5
             curl -f http://localhost:80/health || exit 1
